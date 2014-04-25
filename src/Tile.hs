@@ -10,15 +10,25 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Tile(Tile, zero, one, two, isEmpty, score) where
+module Tile
+       ( Tile
+       , index
+       , isEmpty
+       , log
+       , merge
+       , one
+       , two
+       , value
+       , zero)
+       where
 
 import Data.Bits (shiftL)
 import Data.Word (Word8, Word16)
 import System.Random (Random(..))
 import Util (Zero(..))
 
-newtype Tile = Tile Word8
-  deriving (Enum, Eq)
+newtype Tile = Tile {index :: Word8}
+  deriving (Enum, Ord, Eq)
 
 instance Zero Tile where
   zero = Tile 0
@@ -34,12 +44,15 @@ instance Random Tile where
 
 instance Show Tile where
   show (Tile 0) = "-"
-  show (Tile k) = show n
-    where n :: Word16 = shiftL 1 $ fromIntegral k
+  show t = show (value t)
 
 isEmpty :: Tile -> Bool
 isEmpty (Tile 0) = True
 isEmpty _ = False
 
-score :: Tile -> Int
-score (Tile (fromIntegral -> k)) = k * (shiftL 1 k)
+value :: Tile -> Word16
+value (Tile (fromIntegral -> k)) = 1 `shiftL` k
+
+merge :: Tile -> Tile -> Maybe Tile
+merge t1 t2 | t1 == t2 = Just (succ t1)
+merge _ _ = Nothing

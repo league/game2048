@@ -12,8 +12,10 @@
 
 module Board
        ( Board
-       , Board.score
+       , Coord
        , Move(..)
+       , corners
+       , edges
        , freeCells
        , maybeMove
        , move
@@ -21,9 +23,11 @@ module Board
        , placeRandom
        , placeRandom'
        , placeTile
+       , row, col
        , show2D
        , size
        , start
+       , tileAt
        , zero
        )
        where
@@ -33,7 +37,6 @@ import Control.Monad.State (MonadState, state)
 import Data.Foldable (Foldable(..))
 import Data.List (findIndices, transpose)
 import Data.Maybe (fromJust)
-import Data.Monoid (Sum(..))
 import Prelude hiding (Left, Right, foldr)
 import System.Random (RandomGen, random)
 import Tile
@@ -43,13 +46,55 @@ newtype Board' a = Board {unBoard :: [[a]]}
   deriving (Show, Eq)
 
 type Board = Board' Tile
-type Coord = (Int,Int)
+
+data Coord = Coord { row, col :: Int }
+           deriving Eq
 
 size :: Coord
-size = (4, 4)
+size = Coord 4 4
+
+instance Show Coord where
+  show (Coord i j) = show (i,j)
+
+instance Bounded Coord where
+  minBound = Coord 0 0
+  maxBound = Coord (row size - 1) (col size - 1)
+
+instance Enum Coord where
+  fromEnum (Coord r c) = r * (col size) + c
+  toEnum i = k $ i `divMod` (col size)
+    where k (r,_) | r < row minBound = err
+          k (r,_) | r > row maxBound = err
+          k (_,c) | c < col minBound = err
+          k (_,c) | c > col maxBound = err
+          k (r,c) = Coord r c
+          err = error "Out of bounds"
+
+  enumFrom     x   = enumFromTo     x maxBound
+  enumFromThen x y = enumFromThenTo x y bound
+      where
+        bound | fromEnum y >= fromEnum x = maxBound
+              | otherwise                = minBound
+
+type Corner = (Coord, ([Coord], [Coord]))
+
+edges :: [Corner]
+edges = [(Coord 0 0, (top, left)),
+         (Coord 0 c, (reverse top, right)),
+         (Coord r 0, (bottom, reverse left)),
+         (Coord r c, (reverse bottom, reverse right))]
+  where r      = row maxBound
+        c      = col maxBound
+        top    = map (Coord 0) [0..c]
+        bottom = map (Coord r) [0..c]
+        left   = map (flip Coord 0) [0..r]
+        right  = map (flip Coord c) [0..r]
+
+corners :: [Coord]
+corners = map fst edges
 
 instance Zero a => Zero (Board' a) where
-  zero = Board $ replicate (fst size) $ replicate (snd size) zero
+  zero = Board $ replicate (row size) $ replicate (col size) zero
 
 instance Foldable Board' where
   foldr f z = foldr (flip (foldr f)) z . unBoard
@@ -58,15 +103,15 @@ show2D :: Board -> String
 show2D = unlines . map each . unBoard
   where each = concat . map (padLeft 6 . show)
 
-score :: Board -> Int
-score = getSum . foldMap (Sum . Tile.score)
+tileAt :: Board -> Coord -> Tile
+tileAt b (Coord i j) = unBoard b !! i !! j
 
 placeTile :: Tile -> Coord -> Board -> Board
-placeTile t (i,j) = Board . update (replace t j) i . unBoard
+placeTile t (Coord i j) = Board . update (replace t j) i . unBoard
 
 freeCells :: Board -> [Coord]
 freeCells = concat . zipWith f [0..] . unBoard
-  where f i = map (i,) . findIndices isEmpty
+  where f i = map (Coord i) . findIndices isEmpty
 
 data Move = Left | Right | Up | Down
   deriving (Enum, Bounded, Show, Eq)
@@ -84,7 +129,7 @@ move (unBoard -> b) m = Board (f m b)
     f Up    = transpose . map (squeezeL r) . transpose
     f Down  = transpose . map (squeezeR r) . transpose
 
-    (r,c) = size
+    Coord r c = size
 
     squeezeR k = reverse . squeezeL k . reverse
 
