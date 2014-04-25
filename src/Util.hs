@@ -49,3 +49,17 @@ everyOther :: [a] -> [a]
 everyOther [] = []
 everyOther [a] = [a]
 everyOther (a:_:as) = a : everyOther as
+
+pairwise :: (a -> a -> b) -> [a] -> [b]
+pairwise f as = zipWith f as (tail as)
+
+monotonicity :: Ord a => [a] -> Ordering
+monotonicity xs =
+  if not(steps GT) then LT      -- non-decreasing
+  else if not(steps LT) then GT -- non-increasing
+       else EQ                  -- non-monotonic
+  where steps o = any (== o) os
+        os = pairwise compare xs
+
+countIf :: (a -> Bool) -> [a] -> Int
+countIf ok = length . filter ok

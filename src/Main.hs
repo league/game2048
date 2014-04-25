@@ -24,9 +24,12 @@ seedRand = mkStdGen . fromEnum . utctDayTime <$> getCurrentTime
 runRand :: StateT StdGen IO a -> IO a
 runRand a = seedRand >>= evalStateT a
 
+plausibleDepth :: Int
+plausibleDepth = 3
+
 main :: IO ()
 main = do
   args <- getArgs
   runRand (start >>= prog args)
-  where prog ("auto":_) = auto 3
-        prog _ = loop
+  where prog ("auto":_) = auto plausibleDepth
+        prog _ = loop plausibleDepth

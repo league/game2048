@@ -10,7 +10,7 @@
 
 module Game where
 
-import AI (scoreMoves, best, biggestInCorner, rewardCorners)
+import AI (scoreMoves, best, stats)
 import Board
 import Control.Monad (liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -44,15 +44,14 @@ askMove valid = do
     where err = putStrLn $ "Error: specify " ++ choices ++ ", or Quit"
           choices = intercalate ", " $ map show valid
 
-loop :: (RandomGen g, MonadState g m, MonadIO m) => Board -> m ()
-loop b = do
-  let ms = scoreMoves 3 b
-  liftIO $ putStrLn $ show2D b ++ show ms ++ "\nAI says " ++ show (best ms)
-  liftIO $ putStrLn $ "Big-corner: " ++ show (biggestInCorner b)
-  liftIO $ putStrLn $ "Multiplier: " ++ show (rewardCorners b)
+loop :: (RandomGen g, MonadState g m, MonadIO m) => Int -> Board -> m ()
+loop d b = do
+  let ms = scoreMoves d b
+  liftIO $ putStr $ show2D b ++ stats b ++ show ms ++
+    "\nAI says " ++ show (best ms) ++ "\n"
   m' <- liftIO $ askMove $ map fst nexts
   maybe (liftIO $ putStrLn "OK, quitter.") k m'
   where k m = do
           mb <- placeRandom $ fromJust $ lookup m nexts
-          maybe (liftIO $ putStrLn "GAME OVER!") loop mb
+          maybe (liftIO $ putStrLn "GAME OVER!") (loop d) mb
         nexts = mapMaybe (maybeMove b) every

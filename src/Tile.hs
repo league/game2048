@@ -12,6 +12,7 @@
 
 module Tile
        ( Tile
+       , distance
        , index
        , isEmpty
        , log
@@ -56,3 +57,6 @@ value (Tile (fromIntegral -> k)) = 1 `shiftL` k
 merge :: Tile -> Tile -> Maybe Tile
 merge t1 t2 | t1 == t2 = Just (succ t1)
 merge _ _ = Nothing
+
+distance :: Tile -> Tile -> Int
+distance (Tile x) (Tile y) = fromIntegral x - fromIntegral y

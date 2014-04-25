@@ -24,9 +24,11 @@ module Board
        , placeRandom'
        , placeTile
        , row, col
+       , rows, cols
        , show2D
        , size
        , start
+       , straits
        , tileAt
        , zero
        )
@@ -76,6 +78,15 @@ instance Enum Coord where
         bound | fromEnum y >= fromEnum x = maxBound
               | otherwise                = minBound
 
+rowRange, colRange :: [Int]
+rowRange = [0 .. row maxBound]
+colRange = [0 .. col maxBound]
+
+rows, cols, straits :: [[Coord]]
+rows = map (\r -> map (Coord r) colRange) rowRange
+cols = map (\c -> map (flip Coord c) rowRange) colRange
+straits = rows ++ cols
+
 type Corner = (Coord, ([Coord], [Coord]))
 
 edges :: [Corner]
@@ -85,10 +96,10 @@ edges = [(Coord 0 0, (top, left)),
          (Coord r c, (reverse bottom, reverse right))]
   where r      = row maxBound
         c      = col maxBound
-        top    = map (Coord 0) [0..c]
-        bottom = map (Coord r) [0..c]
-        left   = map (flip Coord 0) [0..r]
-        right  = map (flip Coord c) [0..r]
+        top    = map (Coord 0) colRange
+        bottom = map (Coord r) colRange
+        left   = map (flip Coord 0) rowRange
+        right  = map (flip Coord c) rowRange
 
 corners :: [Coord]
 corners = map fst edges

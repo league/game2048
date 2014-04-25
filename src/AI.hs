@@ -13,54 +13,73 @@ module AI where
 import Board
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State (MonadState)
-import Data.Foldable (foldr1, foldMap)
+import Data.Foldable (foldr1)
 import Data.IORef
-import Data.List (find)
-import Data.Maybe (isJust)
 import Data.Maybe (mapMaybe)
-import Data.Monoid (Sum(..))
 import Prelude hiding (foldr1)
 import System.Random (RandomGen)
-import Tile (Tile, one, index, value)
-import Util (every, mapSnd, mapIf)
+import Tile (Tile, isEmpty, one)
+import Util (every, everyOther, mapSnd, mapIf, countIf, monotonicity)
+
+{- Reward making rows (respectively, columns) monotonic. The ideal situation
+is having all rows monotonic in the SAME direction, but mixed monotonicity is
+better than non-monotonicity. -}
+
+stripEmpty :: [Tile] -> [Tile]
+stripEmpty = filter (not . isEmpty)
+
+mono :: [[Coord]] -> Board -> [Ordering]
+mono cc b = map (monotonicity . stripEmpty . map (tileAt b)) cc
+
+monoFactor :: [Ordering] -> Float
+monoFactor = (/k) . fromIntegral . countIf (/= EQ)
+  where k = fromIntegral (length straits)
+
+countSame :: [Ordering] -> Int
+countSame os = max (k LT) (k GT)
+  where k o = countIf (== o) os
+
+sameFactor :: [Ordering] -> [Ordering] -> Float
+sameFactor ro co = fromIntegral (rs + cs) / k
+  where rs' = countSame ro
+        cs' = countSame co
+        rs = if rs' > 2 then rs' else 0
+        cs = if cs' > 2 then cs' else 0
+        k = fromIntegral (length straits)
+
+{- Minimize number of tiles on the grid -}
+
+elbowRoomFactor :: Board -> Float
+elbowRoomFactor b = fromIntegral n / fromIntegral k
+  where n = length (freeCells b)
+        k = row size * col size
+
+stats :: Board -> String
+stats b = "monoFactor " ++ show mf ++ " sameFactor " ++ show sf ++
+          " elbowRoomFactor " ++ show ef ++ "\n"
+  where mf = monoFactor so
+        sf = sameFactor ro co
+        ef = elbowRoomFactor b
+        so = ro ++ co
+        ro = mono rows b
+        co = mono cols b
+
+boardScore :: Board -> Float
+boardScore b = monoFactor so +
+               2 * sameFactor ro co +
+               3 * elbowRoomFactor b
+  where so = ro ++ co
+        ro = mono rows b
+        co = mono cols b
 
 allPlaces :: Board -> [Board]
 allPlaces b = map (g one) cs
   where g t ij = placeTile t ij b
         cs = freeCells b
 
-tileScore :: Tile -> Int
-tileScore t = i * v
-  where i = fromIntegral $ index t
-        v = fromIntegral $ value t
-
-tileSums :: Board -> Int
-tileSums = getSum . foldMap (Sum . tileScore)
-
-biggestInCorner :: Board -> Maybe Coord
-biggestInCorner b = find ok corners
-  where ok c = tileAt b c == biggest
-        biggest = foldr1 max b
-
-descendingValues :: Board -> [Coord] -> Bool
-descendingValues b cs = foldr1 (&&) $ zipWith f cs (tail cs)
-  where f c1 c2 = tileAt b c1 >= tileAt b c2
-
-rewardCorners :: Board -> Float
-rewardCorners b = case biggestInCorner b of
-  Nothing -> 1
-  Just c -> case lookup c edges of
-    Just (e1,e2) -> if g1 && g2 then 2 else if g1 || g2 then 1.5 else 1.2
-      where g1 = descendingValues b e1
-            g2 = descendingValues b e2
-
-boardScore :: Board -> Float
-boardScore b = multiplier * (fromIntegral $ tileSums b)
-  where multiplier = rewardCorners b
-
 deepScore :: Int -> Board -> Float
 deepScore 0 = boardScore
-deepScore d = k . map snd . mapMaybe f . allPlaces
+deepScore d = k . map snd . mapMaybe f . everyOther . allPlaces
   where f = best . scoreMoves (d-1)
         k [] = -1
         k xs = foldr1 min xs    -- take the worst case
