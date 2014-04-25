@@ -1,32 +1,27 @@
+{- Game • interacting with user to play the game
+ - Copyright ©2014 Christopher League <league@contrapunctus.net>
+ -
+ - This program is free software: you can redistribute it and/or modify it
+ - under the terms of the GNU General Public License as published by the Free
+ - Software Foundation, either version 3 of the License, or (at your option)
+ - any later version.
+ -}
 {-# LANGUAGE ViewPatterns #-}
 
 module Game where
 
+import AI (scoreMoves, best)
 import Board
 import Control.Monad (liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.State (MonadState, state)
+import Control.Monad.State (MonadState)
 import Data.Char (toUpper, isSpace)
 import Data.List (find, intercalate)
 import Data.Maybe (fromJust)
 import Data.Maybe (mapMaybe)
 import System.IO (hFlush, stdout)
-import System.Random (RandomGen, random)
-import Util (choose, every)
-
-placeRandom :: (RandomGen g, MonadState g m) => Board -> m (Maybe Board)
-placeRandom b = case freeCells b of
-  [] -> return Nothing
-  cs -> do
-    c <- choose cs
-    t <- state random
-    return $ Just $ placeTile t c b
-
-placeRandom' :: (RandomGen g, MonadState g m) => Board -> m Board
-placeRandom' = liftM fromJust . placeRandom
-
-start :: (RandomGen g, MonadState g m) => m Board
-start = placeRandom' zero >>= placeRandom'
+import System.Random (RandomGen)
+import Util (every)
 
 data Response = Move Move | Quit | Error deriving Show
 
@@ -51,7 +46,9 @@ askMove valid = do
 
 loop :: (RandomGen g, MonadState g m, MonadIO m) => Board -> m ()
 loop b = do
-  m' <- liftIO $ putStr (show2D b) >> askMove (map fst nexts)
+  let ms = scoreMoves 3 b
+  liftIO $ putStrLn $ show2D b ++ show ms ++ "\nAI says " ++ show (best ms)
+  m' <- liftIO $ askMove $ map fst nexts
   maybe (liftIO $ putStrLn "OK, quitter.") k m'
   where k m = do
           mb <- placeRandom $ fromJust $ lookup m nexts

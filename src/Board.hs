@@ -1,3 +1,11 @@
+{- Board • representing and manipulating the grid
+ - Copyright ©2014 Christopher League <league@contrapunctus.net>
+ -
+ - This program is free software: you can redistribute it and/or modify it
+ - under the terms of the GNU General Public License as published by the Free
+ - Software Foundation, either version 3 of the License, or (at your option)
+ - any later version.
+ -}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -10,19 +18,26 @@ module Board
        , maybeMove
        , move
        , movesByChar
+       , placeRandom
+       , placeRandom'
        , placeTile
        , show2D
        , size
+       , start
        , zero
        )
        where
 
+import Control.Monad (liftM)
+import Control.Monad.State (MonadState, state)
 import Data.Foldable (Foldable(..))
 import Data.List (findIndices, transpose)
+import Data.Maybe (fromJust)
 import Data.Monoid (Sum(..))
 import Prelude hiding (Left, Right, foldr)
+import System.Random (RandomGen, random)
 import Tile
-import Util (Zero(..), padLeft, update, replace, every)
+import Util (Zero(..), padLeft, update, replace, every, choose)
 
 newtype Board' a = Board {unBoard :: [[a]]}
   deriving (Show, Eq)
@@ -81,3 +96,17 @@ move (unBoard -> b) m = Board (f m b)
 maybeMove :: Board -> Move -> Maybe (Move, Board)
 maybeMove b m = if b' == b then Nothing else Just (m, b')
   where b' = move b m
+
+placeRandom :: (RandomGen g, MonadState g m) => Board -> m (Maybe Board)
+placeRandom b = case freeCells b of
+  [] -> return Nothing
+  cs -> do
+    c <- choose cs
+    t <- state random
+    return $ Just $ placeTile t c b
+
+placeRandom' :: (RandomGen g, MonadState g m) => Board -> m Board
+placeRandom' = liftM fromJust . placeRandom
+
+start :: (RandomGen g, MonadState g m) => m Board
+start = placeRandom' zero >>= placeRandom'
