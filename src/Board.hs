@@ -1,24 +1,28 @@
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Board
        ( Board
+       , Board.score
+       , Move(..)
+       , freeCells
+       , maybeMove
+       , move
+       , movesByChar
+       , placeTile
+       , show2D
        , size
        , zero
-       , show2D
-       , placeTile
-       , Board.score
-       , freeCells
-       , move
-       , maybeMove
        )
        where
 
 import Data.Foldable (Foldable(..))
 import Data.List (findIndices, transpose)
 import Data.Monoid (Sum(..))
-import Prelude hiding (foldr)
+import Prelude hiding (Left, Right, foldr)
 import Tile
-import Util (Zero(..), padLeft, update, replace)
+import Util (Zero(..), padLeft, update, replace, every)
 
 newtype Board' a = Board {unBoard :: [[a]]}
   deriving (Show, Eq)
@@ -27,7 +31,7 @@ type Board = Board' Tile
 type Coord = (Int,Int)
 
 size :: Coord
-size = (4, 6)
+size = (4, 4)
 
 instance Zero a => Zero (Board' a) where
   zero = Board $ replicate (fst size) $ replicate (snd size) zero
@@ -49,16 +53,21 @@ freeCells :: Board -> [Coord]
 freeCells = concat . zipWith f [0..] . unBoard
   where f i = map (i,) . findIndices isEmpty
 
-data Move = MoveLeft | MoveRight | MoveUp | MoveDown
+data Move = Left | Right | Up | Down
   deriving (Enum, Bounded, Show, Eq)
 
-move :: Move -> Board -> Board
-move m = Board . f m . unBoard
+movesByChar :: [(Char, Move)]
+movesByChar = map f every
+  where f :: Move -> (Char, Move)
+        f m = (head (show m), m)
+
+move :: Board -> Move -> Board
+move (unBoard -> b) m = Board (f m b)
   where
-    f MoveLeft  = map (squeezeL c)
-    f MoveRight = map (squeezeR c)
-    f MoveUp    = transpose . map (squeezeL r) . transpose
-    f MoveDown  = transpose . map (squeezeR r) . transpose
+    f Left  = map (squeezeL c)
+    f Right = map (squeezeR c)
+    f Up    = transpose . map (squeezeL r) . transpose
+    f Down  = transpose . map (squeezeR r) . transpose
 
     (r,c) = size
 
@@ -71,4 +80,4 @@ move m = Board . f m . unBoard
 
 maybeMove :: Board -> Move -> Maybe (Move, Board)
 maybeMove b m = if b' == b then Nothing else Just (m, b')
-  where b' = move m b
+  where b' = move b m

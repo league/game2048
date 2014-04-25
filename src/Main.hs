@@ -1,10 +1,13 @@
 module Main where
 
-import Board
-import Tile
+import Control.Applicative ((<$>))
+import Control.Monad.Trans.State (evalStateT)
+import Data.Time.Clock (getCurrentTime, utctDayTime)
+import Game
+import System.Random (StdGen, mkStdGen)
 
-sample :: Board
-sample = placeTile one (2,1) $ placeTile two (3,0) zero
+seedRand :: IO StdGen
+seedRand = mkStdGen . fromEnum . utctDayTime <$> getCurrentTime
 
 main :: IO ()
-main = putStrLn $ show2D sample
+main = seedRand >>= evalStateT (start >>= loop)

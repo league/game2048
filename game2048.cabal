@@ -22,4 +22,7 @@ executable game2048
   main-is:             Main.hs
   build-depends:
       base >=4.6 && < 4.7
+    , mtl >= 2.1 && < 2.2
     , random >= 1.0 && < 1.1
+    , time >= 1.4 && < 1.5
+    , transformers >= 0.3 && < 0.4

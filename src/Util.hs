@@ -1,6 +1,8 @@
 module Util where
 
-import System.Random (RandomGen, Random(..))
+import Control.Monad.State (MonadState, state)
+import Control.Monad (liftM)
+import System.Random (RandomGen, randomR)
 
 class Zero a where
   zero :: a
@@ -8,9 +10,8 @@ class Zero a where
 every :: (Enum a, Bounded a) => [a]
 every = enumFrom minBound
 
-choose :: RandomGen g => [a] -> g -> (a, g)
-choose xs g = (xs !! i, g')
-  where (i, g') = randomR (0, length xs - 1) g
+choose :: (RandomGen g, MonadState g m) => [a] -> m a
+choose xs = (xs !!) `liftM` state (randomR (0, length xs - 1))
 
 padLeft :: Int -> String -> String
 padLeft n s = replicate i ' ' ++ s
