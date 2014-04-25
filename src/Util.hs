@@ -9,8 +9,10 @@
 
 module Util where
 
-import Control.Monad.State (MonadState, state)
 import Control.Monad (liftM)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.State (MonadState, state)
+import Data.IORef
 import System.Random (RandomGen, randomR)
 
 class Zero a where
@@ -63,3 +65,10 @@ monotonicity xs =
 
 countIf :: (a -> Bool) -> [a] -> Int
 countIf ok = length . filter ok
+
+modifyReturnIORef :: MonadIO m => IORef a -> (a -> a) -> m a
+modifyReturnIORef ref f = liftIO $ do
+  a <- readIORef ref
+  let a' = f a
+  writeIORef ref a'
+  return a'

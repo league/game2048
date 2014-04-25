@@ -13,6 +13,7 @@
 module Tile
        ( Tile
        , distance
+       , goal
        , index
        , isEmpty
        , log
@@ -34,9 +35,10 @@ newtype Tile = Tile {index :: Word8}
 instance Zero Tile where
   zero = Tile 0
 
-one, two :: Tile
+one, two, goal :: Tile
 one = Tile 1
 two = Tile 2
+goal = Tile 11
 
 instance Random Tile where
   random g = (if p < 0.1 then two else one, g')

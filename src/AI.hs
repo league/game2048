@@ -11,15 +11,17 @@
 module AI where
 
 import Board
+import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State (MonadState)
 import Data.Foldable (foldr1)
 import Data.IORef
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, isNothing)
+import Data.Time.Clock
 import Prelude hiding (foldr1)
 import System.Random (RandomGen)
-import Tile (Tile, isEmpty, one)
-import Util (every, everyOther, mapSnd, mapIf, countIf, monotonicity)
+import Tile
+import Util
 
 {- Reward making rows (respectively, columns) monotonic. The ideal situation
 is having all rows monotonic in the SAME direction, but mixed monotonicity is
@@ -92,22 +94,35 @@ best :: [(Move, Float)] -> Maybe (Move, Float)
 best [] = Nothing
 best xs = Just $ foldr1 (mapIf snd (>)) xs
 
-incr :: IORef Int -> IO Int
-incr ref = do
-  i <- readIORef ref
-  let j = i + 1
-  writeIORef ref j
-  return j
+type Status = Maybe (Int, NominalDiffTime)
 
-auto :: (RandomGen g, MonadState g m, MonadIO m) => Int -> Board -> m ()
-auto d b0 = do
-  count <- liftIO $ newIORef 0
-  loop count b0
+auto' :: (RandomGen g, MonadState g m, MonadIO m) =>
+         UTCTime -> IORef Status -> IORef Int -> Int -> Board -> m ()
+auto' begin status count depth board = loop board
   where
-    loop count b = case best (scoreMoves d b) of
+    loop b = case best (scoreMoves depth b) of
       Nothing -> liftIO $ putStrLn "GAME OVER"
       Just mk -> do
-        i <- liftIO $ incr count
+        i <- modifyReturnIORef count (+1)
         liftIO $ putStrLn $ show2D b ++ show i ++ ": " ++ show mk
-        mb <- placeRandom $ move b (fst mk)
-        maybe (liftIO $ putStrLn "GAME OVER!") (loop count) mb
+        let b' = move b (fst mk)
+        st <- liftIO $ readIORef status
+        when (isNothing st && foldr1 max b == goal) $ liftIO $ do
+          end <- getCurrentTime
+          putStrLn "========================= CONGRATS!"
+          writeIORef status (Just (i, diffUTCTime end begin))
+        mb <- placeRandom b'
+        maybe (liftIO $ putStrLn "GAME OVER!") loop mb
+
+auto :: (RandomGen g, MonadState g m, MonadIO m) => Int -> Board -> m ()
+auto depth board = do
+  begin  <- liftIO getCurrentTime
+  status <- liftIO $ newIORef Nothing
+  count  <- liftIO $ newIORef 0
+  auto' begin status count depth board
+  st <- liftIO $ readIORef status
+  case st of
+    Nothing -> return ()
+    Just (steps, elapsed) -> liftIO $ do
+      putStrLn $ "Reached " ++ show goal ++ " after " ++ show steps ++
+                 " steps and " ++ show elapsed
