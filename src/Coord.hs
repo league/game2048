@@ -14,31 +14,36 @@ module Coord
        , size
        ) where
 
-data Coord = Coord { row, col :: Int }
-           deriving Eq
+newtype Coord = Coord { asInt :: Int }
+                deriving Eq
+
+rowSize, colSize :: Int
+rowSize = 4
+colSize = 4
 
 coord :: Int -> Int -> Coord
-coord = Coord
+coord i j = Coord (i * colSize + j)
+
+row, col :: Coord -> Int
+row c = asInt c `div` colSize
+col c = asInt c `mod` colSize
+
+asPair :: Coord -> (Int,Int)
+asPair c = asInt c `divMod` colSize
 
 size :: Coord
-size = Coord 4 4
+size = coord rowSize colSize
 
 instance Show Coord where
-  show (Coord i j) = show (i,j)
+  show = show . asPair
 
 instance Bounded Coord where
-  minBound = Coord 0 0
-  maxBound = Coord (row size - 1) (col size - 1)
+  minBound = coord 0 0
+  maxBound = coord (rowSize - 1) (colSize - 1)
 
 instance Enum Coord where
-  fromEnum (Coord r c) = r * col size + c
-  toEnum i = k $ i `divMod` col size
-    where k (r,_) | r < row minBound = err
-          k (r,_) | r > row maxBound = err
-          k (_,c) | c < col minBound = err
-          k (_,c) | c > col maxBound = err
-          k (r,c) = Coord r c
-          err = error "Out of bounds"
+  fromEnum = asInt
+  toEnum = Coord  -- could error-check
 
   enumFrom     x   = enumFromTo     x maxBound
   enumFromThen x y = enumFromThenTo x y bound
