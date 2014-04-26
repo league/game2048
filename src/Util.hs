@@ -13,6 +13,7 @@ import Control.Monad (liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State (MonadState, state)
 import Data.IORef
+import Data.List (sortBy)
 import System.Random (RandomGen, randomR)
 
 class Zero a where
@@ -72,3 +73,10 @@ modifyReturnIORef ref f = liftIO $ do
   let a' = f a
   writeIORef ref a'
   return a'
+
+rsort :: Ord a => [a] -> [a]
+rsort = sortBy r
+  where r x y = case compare x y of
+          EQ -> EQ
+          GT -> LT
+          LT -> GT

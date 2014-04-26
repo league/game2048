@@ -10,7 +10,7 @@
 
 module Game where
 
-import AI (scoreMoves, best, stats)
+import AI (scoreMoves, best, calc)
 import Board
 import Control.Monad (liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -47,7 +47,7 @@ askMove valid = do
 loop :: (RandomGen g, MonadState g m, MonadIO m) => Int -> Board -> m ()
 loop d b = do
   let ms = scoreMoves d b
-  liftIO $ putStr $ show2D b ++ stats b ++ show ms ++
+  liftIO $ putStr $ show2D b ++ show (calc b) ++ "\n" ++ show ms ++
     "\nAI says " ++ show (best ms) ++ "\n"
   m' <- liftIO $ askMove $ map fst nexts
   maybe (liftIO $ putStrLn "OK, quitter.") k m'

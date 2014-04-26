@@ -14,7 +14,6 @@ module Board
        ( Board
        , Coord
        , Move(..)
-       , corners
        , edges
        , freeCells
        , maybeMove
@@ -83,27 +82,19 @@ rowRange, colRange :: [Int]
 rowRange = [0 .. row maxBound]
 colRange = [0 .. col maxBound]
 
-rows, cols, straits :: [[Coord]]
+rows, cols, straits, edges :: [[Coord]]
+
 rows = map (\r -> map (Coord r) colRange) rowRange
 cols = map (\c -> map (flip Coord c) rowRange) colRange
 straits = rows ++ cols
 
-type Corner = (Coord, ([Coord], [Coord]))
-
-edges :: [Corner]
-edges = [(Coord 0 0, (top, left)),
-         (Coord 0 c, (reverse top, right)),
-         (Coord r 0, (bottom, reverse left)),
-         (Coord r c, (reverse bottom, reverse right))]
+edges = [top, bottom, left, right]
   where r      = row maxBound
         c      = col maxBound
         top    = map (Coord 0) colRange
         bottom = map (Coord r) colRange
         left   = map (flip Coord 0) rowRange
         right  = map (flip Coord c) rowRange
-
-corners :: [Coord]
-corners = map fst edges
 
 instance Zero a => Zero (Board' a) where
   zero = Board $ replicate (row size) $ replicate (col size) zero

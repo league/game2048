@@ -15,11 +15,11 @@ import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State (MonadState)
 import Control.Parallel.Strategies
-import Data.Foldable (foldr1)
+import Data.Foldable (foldr, foldr1)
 import Data.IORef
 import Data.Maybe (mapMaybe, isNothing)
 import Data.Time.Clock
-import Prelude hiding (foldr1)
+import Prelude hiding (foldr, foldr1)
 import System.Random (RandomGen)
 import Tile
 import Util
@@ -38,10 +38,6 @@ monoFactor :: [Ordering] -> Float
 monoFactor = (/k) . fromIntegral . countIf (/= EQ)
   where k = fromIntegral (length straits)
 
-countSame :: [Ordering] -> Int
-countSame os = max (k LT) (k GT)
-  where k o = countIf (== o) os
-
 sameFactor :: [Ordering] -> [Ordering] -> Float
 sameFactor ro co = fromIntegral (rs + cs) / k
   where rs' = countSame ro
@@ -49,6 +45,8 @@ sameFactor ro co = fromIntegral (rs + cs) / k
         rs = if rs' > 2 then rs' else 0
         cs = if cs' > 2 then cs' else 0
         k = fromIntegral (length straits)
+        countSame os = max (g LT) (g GT)
+          where g o = countIf (== o) os
 
 {- Minimize number of tiles on the grid -}
 
@@ -57,23 +55,44 @@ elbowRoomFactor b = fromIntegral n / fromIntegral k
   where n = length (freeCells b)
         k = row size * col size
 
-stats :: Board -> String
-stats b = "monoFactor " ++ show mf ++ " sameFactor " ++ show sf ++
-          " elbowRoomFactor " ++ show ef ++ "\n"
+{- Keep largest tiles on the same edge -}
+
+bigEnough :: Tile -> Bool
+bigEnough t = index t > 3  -- don't bother with 2,4,8
+
+largest :: Int -> Board -> [Tile]
+largest n = take n . rsort . filter bigEnough . foldr (:) []
+
+howManyPerEdge :: Board -> [Tile] -> [Coord] -> Int
+howManyPerEdge b ts = length . filter p
+  where p c = tileAt b c `elem` ts
+
+edgeFactor :: Board -> Float
+edgeFactor b = fromIntegral(foldr1 max es) / fromIntegral n
+  where n = 3
+        es = map (howManyPerEdge b (largest n b)) edges
+
+{- Combining above factors -}
+
+data Factors = Factors { monoF, sameF, elbowF, edgeF :: Float }
+             deriving Show
+
+calc :: Board -> Factors
+calc b = Factors mf sf rf ef
   where mf = monoFactor so
         sf = sameFactor ro co
-        ef = elbowRoomFactor b
+        rf = elbowRoomFactor b
+        ef = edgeFactor b
         so = ro ++ co
         ro = mono rows b
         co = mono cols b
 
 boardScore :: Board -> Float
-boardScore b = monoFactor so +
-               2 * sameFactor ro co +
-               3 * elbowRoomFactor b
-  where so = ro ++ co
-        ro = mono rows b
-        co = mono cols b
+boardScore b = 1 * monoF f +
+               2 * sameF f +
+               3 * elbowF f +
+               2 * edgeF f
+  where f = calc b
 
 allPlaces :: Board -> [Board]
 allPlaces b = map (g one) cs
