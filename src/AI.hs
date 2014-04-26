@@ -11,6 +11,7 @@
 module AI where
 
 import Board
+import Coord
 import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State (MonadState)
@@ -28,11 +29,9 @@ import Util
 is having all rows monotonic in the SAME direction, but mixed monotonicity is
 better than non-monotonicity. -}
 
-stripEmpty :: [Tile] -> [Tile]
-stripEmpty = filter (not . isEmpty)
-
 mono :: [[Coord]] -> Board -> [Ordering]
-mono cc b = map (monotonicity . stripEmpty . map (tileAt b)) cc
+mono cc b = map (monotonicity . filter p . map (tileAt b)) cc
+  where p = not . isEmpty
 
 monoFactor :: [Ordering] -> Float
 monoFactor = (/k) . fromIntegral . countIf (/= EQ)
@@ -51,9 +50,7 @@ sameFactor ro co = fromIntegral (rs + cs) / k
 {- Minimize number of tiles on the grid -}
 
 elbowRoomFactor :: Board -> Float
-elbowRoomFactor b = fromIntegral n / fromIntegral k
-  where n = length (freeCells b)
-        k = row size * col size
+elbowRoomFactor b = fromIntegral (freeCount b) / fromIntegral gridSize
 
 {- Keep largest tiles on the same edge -}
 
@@ -88,8 +85,8 @@ calc b = Factors mf sf rf ef
         co = mono cols b
 
 boardScore :: Board -> Float
-boardScore b = 1 * monoF f +
-               2 * sameF f +
+boardScore b = 2 * monoF f +
+               3 * sameF f +
                3 * elbowF f +
                2 * edgeF f
   where f = calc b
@@ -101,7 +98,7 @@ allPlaces b = map (g one) cs
 
 deepScore :: Int -> Board -> Float
 deepScore 0 = boardScore
-deepScore d = k . map snd . mapMaybe f . {-everyOther .-} allPlaces
+deepScore d = k . map snd . mapMaybe f . everyOther . allPlaces
   where f = best . scoreMoves' (d-1)
         k [] = -1
         k xs = foldr1 min xs    -- take the worst case
@@ -148,3 +145,16 @@ auto depth board = do
     Just (steps, elapsed) -> liftIO $ do
       putStrLn $ "Reached " ++ show goal ++ " after " ++ show steps ++
                  " steps and " ++ show elapsed
+
+{-
+434: (Up,4.666667)
+     2    16    32    64
+     4    32    64   128
+     -     8    32   512
+     2     4     8    64
+GAME OVER
+
+Here is an example of a board where it didn't get very far, because we
+apparently didn't prioritize aligning numbers that COULD be joined: look at
+those two 64s and two 32s taking up space.
+-}

@@ -10,16 +10,18 @@
 module Coord
        ( Coord
        , coord
+       , gridSize
        , row, col
-       , size
+       , rowSize, colSize
        ) where
 
 newtype Coord = Coord { asInt :: Int }
                 deriving Eq
 
-rowSize, colSize :: Int
+rowSize, colSize, gridSize :: Int
 rowSize = 4
 colSize = 4
+gridSize = rowSize * colSize
 
 coord :: Int -> Int -> Coord
 coord i j = Coord (i * colSize + j)
@@ -30,9 +32,6 @@ col c = asInt c `mod` colSize
 
 asPair :: Coord -> (Int,Int)
 asPair c = asInt c `divMod` colSize
-
-size :: Coord
-size = coord rowSize colSize
 
 instance Show Coord where
   show = show . asPair

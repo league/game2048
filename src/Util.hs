@@ -80,3 +80,7 @@ rsort = sortBy r
           EQ -> EQ
           GT -> LT
           LT -> GT
+
+foldlWithIndex :: (Int -> b -> a -> b) -> b -> [a] -> b
+foldlWithIndex f z as = snd $ foldl g (0,z) as
+  where g (i,b) a = (i+1, f i b a)

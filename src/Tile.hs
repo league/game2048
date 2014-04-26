@@ -21,8 +21,8 @@ module Tile
        , one
        , two
        , value
-       , zero)
-       where
+       , zero
+       ) where
 
 import Data.Bits (shiftL)
 import Data.Word (Word8, Word16)

@@ -9,56 +9,67 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Board
        ( Board
-       , Coord
        , Move(..)
        , edges
        , freeCells
+       , freeCount
+       , fromList
        , maybeMove
        , move
        , movesByChar
        , placeRandom
-       , placeRandom'
        , placeTile
-       , row, col
        , rows, cols
        , show2D
-       , size
        , start
        , straits
        , tileAt
-       , zero
        )
        where
 
-import Control.DeepSeq (NFData(..))
-import Control.Monad (liftM)
-import Control.Monad.State (MonadState, state)
-import Coord
-import Data.Foldable (Foldable(..))
-import Data.List (findIndices, transpose)
-import Data.Maybe (fromJust)
-import Prelude hiding (Left, Right, foldr)
-import System.Random (RandomGen, random)
-import Tile
-import Util (Zero(..), padLeft, update, replace, every, choose)
+import           Control.DeepSeq (NFData(..))
+import           Control.Monad (liftM)
+import           Control.Monad.State (MonadState, state)
+import           Coord
+import           Data.Foldable (Foldable)
+import           Data.IntMap.Lazy (IntMap)
+import qualified Data.IntMap.Lazy as Map
+import           Data.Maybe (fromJust)
+import           Prelude hiding (Left, Right, foldr)
+import           System.Random (RandomGen, random)
+import           Tile
+import           Util
 
-newtype Board' a = Board {unBoard :: [[a]]}
-  deriving (Show, Eq)
+newtype Board' a = Board {unBoard :: IntMap a}
+                 deriving (Eq, Show, Foldable)
 
 type Board = Board' Tile
+
+instance Zero a => Zero (Board' a) where
+  zero = Board Map.empty
+
+fromList :: [[Tile]] -> Board
+fromList tt = Board $ Map.fromList $ foldlWithIndex (foldlWithIndex . f) [] tt
+  where f i j cts t =
+          if isEmpty t then cts
+          else (fromEnum(coord i j), t) : cts
 
 rowRange, colRange :: [Int]
 rowRange = [0 .. row maxBound]
 colRange = [0 .. col maxBound]
 
-rows, cols, straits, edges :: [[Coord]]
+rows, cols, rowsRev, colsRev, straits, edges :: [[Coord]]
 
-rows = map (\r -> map (coord r) colRange) rowRange
-cols = map (\c -> map (flip coord c) rowRange) colRange
+rows = map (\i -> map (coord i) colRange) rowRange
+cols = map (\j -> map (flip coord j) rowRange) colRange
 straits = rows ++ cols
+
+rowsRev = map reverse rows
+colsRev = map reverse cols
 
 edges = [top, bottom, left, right]
   where r      = row maxBound
@@ -68,27 +79,23 @@ edges = [top, bottom, left, right]
         left   = map (flip coord 0) rowRange
         right  = map (flip coord c) rowRange
 
-instance Zero a => Zero (Board' a) where
-  zero = Board $ replicate (row size) $ replicate (col size) zero
-
-instance Foldable Board' where
-  foldr f z = foldr (flip (foldr f)) z . unBoard
+tileAt :: Board -> Coord -> Tile
+tileAt b c = Map.findWithDefault zero (fromEnum c) (unBoard b)
 
 show2D :: Board -> String
-show2D = unlines . map each . unBoard
-  where each = concat . map (padLeft 6 . show)
-
-tileAt :: Board -> Coord -> Tile
-tileAt b c = unBoard b !! row c !! col c
+show2D b = unlines (map eachRow rows)
+  where eachRow = concat . map eachCol
+        eachCol = padLeft 6 . show . tileAt b
 
 placeTile :: Tile -> Coord -> Board -> Board
-placeTile t c = Board . update (replace t j) i . unBoard
-  where i = row c
-        j = col c
+placeTile t c = Board . Map.insert (fromEnum c) t . unBoard
+
+freeCount :: Board -> Int
+freeCount b = gridSize - Map.size (unBoard b)
 
 freeCells :: Board -> [Coord]
-freeCells = concat . zipWith f [0..] . unBoard
-  where f i = map (coord i) . findIndices isEmpty
+freeCells (unBoard -> b) = filter p every
+  where p c = Map.notMember (fromEnum c) b
 
 data Move = Left | Right | Up | Down
   deriving (Enum, Bounded, Show, Eq)
@@ -100,23 +107,26 @@ movesByChar = map f every
   where f :: Move -> (Char, Move)
         f m = (head (show m), m)
 
+squeeze' :: Int -> [Tile] -> [Tile]
+squeeze' k = loop k . filter (not . isEmpty)
+  where loop n [] = replicate n zero
+        loop n (t1:t2:ts') | t1 == t2 = succ t1 : loop (n-1) ts'
+        loop n (t:ts) = t : loop (n-1) ts
+
+squeeze :: Int -> [(a,Tile)] -> [(a,Tile)]
+squeeze k cts = zip (map fst cts) $ squeeze' k $ map snd cts
+
 move :: Board -> Move -> Board
-move (unBoard -> b) m = Board (f m b)
+move b m = Board $ Map.fromList $ filter p $ concat $ map (squeeze k) $ cts
   where
-    f Left  = map (squeezeL c)
-    f Right = map (squeezeR c)
-    f Up    = transpose . map (squeezeL r) . transpose
-    f Down  = transpose . map (squeezeR r) . transpose
-
-    r = row size
-    c = col size
-
-    squeezeR k = reverse . squeezeL k . reverse
-
-    squeezeL k = loop k . filter (not . isEmpty)
-      where loop n [] = replicate n zero
-            loop n (t1:t2:ts') | t1 == t2 = succ t1 : loop (n-1) ts'
-            loop n (t:ts) = t : loop (n-1) ts
+    cts = map (map f) cc
+    f c = (fromEnum c, tileAt b c)
+    p = not . isEmpty . snd
+    (k, cc) = case m of
+          Left  -> (rowSize, rows)
+          Right -> (rowSize, rowsRev)
+          Up    -> (colSize, cols)
+          Down  -> (colSize, colsRev)
 
 maybeMove :: Board -> Move -> Maybe (Move, Board)
 maybeMove b m = if b' == b then Nothing else Just (m, b')
@@ -135,3 +145,13 @@ placeRandom' = liftM fromJust . placeRandom
 
 start :: (RandomGen g, MonadState g m) => m Board
 start = placeRandom' zero >>= placeRandom'
+
+{-
+     -     -     -     -
+     -     -     -     -
+     -     -     -     2
+     2     -     -     8
+
+let bl = fromList $ map (map Tile) [[0,0,0,0],[0,0,0,0],[0,0,0,1],[1,0,0,3]]
+
+-}
