@@ -7,6 +7,7 @@
  - any later version.
  -}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 module Game2048.AI where
 
@@ -18,7 +19,7 @@ import Data.Foldable (foldr, foldr1)
 import Data.IORef
 import Data.Maybe (mapMaybe, isNothing)
 import Data.Time.Clock
-import Game2048.Board
+import Game2048.Board.Base
 import Game2048.Coord
 import Game2048.Tile
 import Game2048.Util
@@ -29,7 +30,7 @@ import System.Random (RandomGen)
 is having all rows monotonic in the SAME direction, but mixed monotonicity is
 better than non-monotonicity. -}
 
-mono :: [[Coord]] -> Board -> [Ordering]
+mono :: Board b Tile => [[Coord]] -> b Tile -> [Ordering]
 mono cc b = map (monotonicity . filter p . map (tileAt b)) cc
   where p = not . isEmpty
 
@@ -49,7 +50,7 @@ sameFactor ro co = fromIntegral (rs + cs) / k
 
 {- Minimize number of tiles on the grid -}
 
-elbowRoomFactor :: Board -> Float
+elbowRoomFactor :: Board b Tile => b Tile -> Float
 elbowRoomFactor b = fromIntegral (freeCount b) / fromIntegral gridSize
 
 {- Keep largest tiles on the same edge -}
@@ -57,14 +58,14 @@ elbowRoomFactor b = fromIntegral (freeCount b) / fromIntegral gridSize
 bigEnough :: Tile -> Bool
 bigEnough t = index t > 3  -- don't bother with 2,4,8
 
-largest :: Int -> Board -> [Tile]
+largest :: Board b Tile => Int -> b Tile -> [Tile]
 largest n = take n . rsort . filter bigEnough . foldr (:) []
 
-howManyPerEdge :: Board -> [Tile] -> [Coord] -> Int
+howManyPerEdge :: Board b Tile => b Tile -> [Tile] -> [Coord] -> Int
 howManyPerEdge b ts = length . filter p
   where p c = tileAt b c `elem` ts
 
-edgeFactor :: Board -> Float
+edgeFactor :: Board b Tile => b Tile -> Float
 edgeFactor b = fromIntegral(foldr1 max es) / fromIntegral n
   where n = 3
         es = map (howManyPerEdge b (largest n b)) edges
@@ -74,7 +75,7 @@ edgeFactor b = fromIntegral(foldr1 max es) / fromIntegral n
 data Factors = Factors { monoF, sameF, elbowF, edgeF :: Float }
              deriving Show
 
-calc :: Board -> Factors
+calc :: Board b Tile => b Tile -> Factors
 calc b = Factors mf sf rf ef
   where mf = monoFactor so
         sf = sameFactor ro co
@@ -84,26 +85,26 @@ calc b = Factors mf sf rf ef
         ro = mono rows b
         co = mono cols b
 
-boardScore :: Board -> Float
+boardScore :: Board b Tile => b Tile -> Float
 boardScore b = 2 * monoF f +
                3 * sameF f +
                3 * elbowF f +
                2 * edgeF f
   where f = calc b
 
-allPlaces :: Board -> [Board]
+allPlaces :: Board b Tile => b Tile -> [b Tile]
 allPlaces b = map (g one) cs
   where g t ij = placeTile t ij b
         cs = freeCells b
 
-deepScore :: Int -> Board -> Float
+deepScore :: Board b Tile => Int -> b Tile -> Float
 deepScore 0 = boardScore
 deepScore d = k . map snd . mapMaybe f . {-everyOther .-} allPlaces
   where f = best . scoreMoves' (d-1)
         k [] = -1
         k xs = foldr1 min xs    -- take the worst case
 
-scoreMoves', scoreMoves :: Int -> Board -> [(Move, Float)]
+scoreMoves', scoreMoves :: Board b Tile => Int -> b Tile -> [(Move, Float)]
 scoreMoves' d b = map f $ mapMaybe (maybeMove b) every
   where f = mapSnd $ deepScore d
 
@@ -115,8 +116,8 @@ best xs = Just $ foldr1 (mapIf snd (>)) xs
 
 type Status = Maybe (Int, NominalDiffTime)
 
-auto' :: (RandomGen g, MonadState g m, MonadIO m) =>
-         UTCTime -> IORef Status -> IORef Int -> Int -> Board -> m ()
+auto' :: (RandomGen g, MonadState g m, MonadIO m, Board b Tile) =>
+         UTCTime -> IORef Status -> IORef Int -> Int -> b Tile -> m ()
 auto' begin status count depth board = loop board
   where
     loop b = case best (scoreMoves depth b) of
@@ -133,7 +134,7 @@ auto' begin status count depth board = loop board
         mb <- placeRandom b'
         maybe (liftIO $ putStrLn "GAME OVER!") loop mb
 
-auto :: (RandomGen g, MonadState g m, MonadIO m) => Int -> Board -> m ()
+auto :: (RandomGen g, MonadState g m, MonadIO m, Board b Tile) => Int -> b Tile -> m ()
 auto depth board = do
   begin  <- liftIO getCurrentTime
   status <- liftIO $ newIORef Nothing

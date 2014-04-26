@@ -6,6 +6,8 @@
  - Software Foundation, either version 3 of the License, or (at your option)
  - any later version.
  -}
+
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Game2048.Game where
@@ -18,7 +20,8 @@ import Data.List (find, intercalate)
 import Data.Maybe (fromJust)
 import Data.Maybe (mapMaybe)
 import Game2048.AI (scoreMoves, best, calc)
-import Game2048.Board
+import Game2048.Board.Base
+import Game2048.Tile
 import Game2048.Util (every)
 import System.IO (hFlush, stdout)
 import System.Random (RandomGen)
@@ -44,7 +47,7 @@ askMove valid = do
     where err = putStrLn $ "Error: specify " ++ choices ++ ", or Quit"
           choices = intercalate ", " $ map show valid
 
-loop :: (RandomGen g, MonadState g m, MonadIO m) => Int -> Board -> m ()
+loop :: (RandomGen g, MonadState g m, MonadIO m, Board b Tile) => Int -> b Tile -> m ()
 loop d b = do
   let ms = scoreMoves d b
   liftIO $ putStr $ show2D b ++ show (calc b) ++ "\n" ++ show ms ++

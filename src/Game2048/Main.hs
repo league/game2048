@@ -7,13 +7,16 @@
  - any later version.
  -}
 
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Game2048.Main where
 
 import Control.Applicative ((<$>))
 import Control.Monad.Trans.State (StateT, evalStateT)
 import Data.Time.Clock (getCurrentTime, utctDayTime)
 import Game2048.AI (auto)
-import Game2048.Board (start)
+import Game2048.Board.Base (start)
+import Game2048.Board.IntMapBoard (BoardT)
 import Game2048.Game (loop)
 import System.Environment (getArgs)
 import System.Random (StdGen, mkStdGen)
@@ -27,9 +30,12 @@ runRand a = seedRand >>= evalStateT a
 plausibleDepth :: Int
 plausibleDepth = 3
 
+
 main :: IO ()
 main = do
   args <- getArgs
-  runRand (start >>= prog args)
+  runRand $ do
+    b :: BoardT <- start
+    prog args b
   where prog ("auto":_) = auto plausibleDepth
         prog _ = loop plausibleDepth

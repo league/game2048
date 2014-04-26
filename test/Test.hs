@@ -2,7 +2,6 @@
 
 import Data.List (sort)
 import Game2048.AI (scoreMoves)
-import Game2048.Board as Board
 import Game2048.Util
 import Test.Framework.Providers.HUnit (testCase)
 import Test.Framework.Providers.QuickCheck (testProperty)

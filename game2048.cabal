@@ -18,10 +18,13 @@ cabal-version:       >=1.10
 library
   default-language: Haskell2010
   hs-source-dirs: src
-  ghc-options: -Wall -threaded
+  ghc-options: -O2 -Wall -threaded
+  ghc-prof-options: -fprof-auto
   exposed-modules:
     Game2048.AI
-    Game2048.Board
+    Game2048.Board.Base
+    Game2048.Board.IntMapBoard
+    Game2048.Board.ListBoard
     Game2048.Coord
     Game2048.Game
     Game2048.Main
@@ -39,7 +42,8 @@ library
 
 executable game2048
   default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+  ghc-options: -O2 -Wall -threaded
+  ghc-prof-options: -fprof-auto
   hs-source-dirs:      .
   main-is:             Main.hs
   build-depends:
@@ -48,7 +52,8 @@ executable game2048
 
 executable bench
   default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
+  ghc-options: -O2 -Wall -threaded
+  ghc-prof-options: -fprof-auto
   hs-source-dirs:      .
   main-is:             Bench.hs
   build-depends:
@@ -61,7 +66,8 @@ test-suite tests
   type: exitcode-stdio-1.0
   main-is: Test.hs
   hs-source-dirs: test
-  ghc-options: -threaded
+  ghc-options: -O2 -threaded
+  ghc-prof-options: -fprof-auto
   build-depends:
       base >= 4.6 && < 4.7
     , HUnit >= 1.2 && < 1.3
