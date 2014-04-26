@@ -34,6 +34,7 @@ module Board
        )
        where
 
+import Control.DeepSeq (NFData(..))
 import Control.Monad (liftM)
 import Control.Monad.State (MonadState, state)
 import Data.Foldable (Foldable(..))
@@ -126,6 +127,8 @@ freeCells = concat . zipWith f [0..] . unBoard
 
 data Move = Left | Right | Up | Down
   deriving (Enum, Bounded, Show, Eq)
+
+instance NFData Move where
 
 movesByChar :: [(Char, Move)]
 movesByChar = map f every

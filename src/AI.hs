@@ -14,6 +14,7 @@ import Board
 import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State (MonadState)
+import Control.Parallel.Strategies
 import Data.Foldable (foldr1)
 import Data.IORef
 import Data.Maybe (mapMaybe, isNothing)
@@ -81,14 +82,16 @@ allPlaces b = map (g one) cs
 
 deepScore :: Int -> Board -> Float
 deepScore 0 = boardScore
-deepScore d = k . map snd . mapMaybe f . everyOther . allPlaces
-  where f = best . scoreMoves (d-1)
+deepScore d = k . map snd . mapMaybe f . {-everyOther .-} allPlaces
+  where f = best . scoreMoves' (d-1)
         k [] = -1
         k xs = foldr1 min xs    -- take the worst case
 
-scoreMoves :: Int -> Board -> [(Move, Float)]
-scoreMoves d b = map f $ mapMaybe (maybeMove b) every
+scoreMoves', scoreMoves :: Int -> Board -> [(Move, Float)]
+scoreMoves' d b = map f $ mapMaybe (maybeMove b) every
   where f = mapSnd $ deepScore d
+
+scoreMoves d b = scoreMoves' d b `using` parList rdeepseq
 
 best :: [(Move, Float)] -> Maybe (Move, Float)
 best [] = Nothing
