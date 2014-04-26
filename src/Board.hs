@@ -36,6 +36,7 @@ module Board
 import Control.DeepSeq (NFData(..))
 import Control.Monad (liftM)
 import Control.Monad.State (MonadState, state)
+import Coord
 import Data.Foldable (Foldable(..))
 import Data.List (findIndices, transpose)
 import Data.Maybe (fromJust)
@@ -49,52 +50,23 @@ newtype Board' a = Board {unBoard :: [[a]]}
 
 type Board = Board' Tile
 
-data Coord = Coord { row, col :: Int }
-           deriving Eq
-
-size :: Coord
-size = Coord 4 4
-
-instance Show Coord where
-  show (Coord i j) = show (i,j)
-
-instance Bounded Coord where
-  minBound = Coord 0 0
-  maxBound = Coord (row size - 1) (col size - 1)
-
-instance Enum Coord where
-  fromEnum (Coord r c) = r * (col size) + c
-  toEnum i = k $ i `divMod` (col size)
-    where k (r,_) | r < row minBound = err
-          k (r,_) | r > row maxBound = err
-          k (_,c) | c < col minBound = err
-          k (_,c) | c > col maxBound = err
-          k (r,c) = Coord r c
-          err = error "Out of bounds"
-
-  enumFrom     x   = enumFromTo     x maxBound
-  enumFromThen x y = enumFromThenTo x y bound
-      where
-        bound | fromEnum y >= fromEnum x = maxBound
-              | otherwise                = minBound
-
 rowRange, colRange :: [Int]
 rowRange = [0 .. row maxBound]
 colRange = [0 .. col maxBound]
 
 rows, cols, straits, edges :: [[Coord]]
 
-rows = map (\r -> map (Coord r) colRange) rowRange
-cols = map (\c -> map (flip Coord c) rowRange) colRange
+rows = map (\r -> map (coord r) colRange) rowRange
+cols = map (\c -> map (flip coord c) rowRange) colRange
 straits = rows ++ cols
 
 edges = [top, bottom, left, right]
   where r      = row maxBound
         c      = col maxBound
-        top    = map (Coord 0) colRange
-        bottom = map (Coord r) colRange
-        left   = map (flip Coord 0) rowRange
-        right  = map (flip Coord c) rowRange
+        top    = map (coord 0) colRange
+        bottom = map (coord r) colRange
+        left   = map (flip coord 0) rowRange
+        right  = map (flip coord c) rowRange
 
 instance Zero a => Zero (Board' a) where
   zero = Board $ replicate (row size) $ replicate (col size) zero
@@ -107,14 +79,16 @@ show2D = unlines . map each . unBoard
   where each = concat . map (padLeft 6 . show)
 
 tileAt :: Board -> Coord -> Tile
-tileAt b (Coord i j) = unBoard b !! i !! j
+tileAt b c = unBoard b !! row c !! col c
 
 placeTile :: Tile -> Coord -> Board -> Board
-placeTile t (Coord i j) = Board . update (replace t j) i . unBoard
+placeTile t c = Board . update (replace t j) i . unBoard
+  where i = row c
+        j = col c
 
 freeCells :: Board -> [Coord]
 freeCells = concat . zipWith f [0..] . unBoard
-  where f i = map (Coord i) . findIndices isEmpty
+  where f i = map (coord i) . findIndices isEmpty
 
 data Move = Left | Right | Up | Down
   deriving (Enum, Bounded, Show, Eq)
@@ -134,7 +108,8 @@ move (unBoard -> b) m = Board (f m b)
     f Up    = transpose . map (squeezeL r) . transpose
     f Down  = transpose . map (squeezeR r) . transpose
 
-    Coord r c = size
+    r = row size
+    c = col size
 
     squeezeR k = reverse . squeezeL k . reverse
 
