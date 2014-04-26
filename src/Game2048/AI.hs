@@ -98,7 +98,7 @@ allPlaces b = map (g one) cs
 
 deepScore :: Int -> Board -> Float
 deepScore 0 = boardScore
-deepScore d = k . map snd . mapMaybe f . everyOther . allPlaces
+deepScore d = k . map snd . mapMaybe f . {-everyOther .-} allPlaces
   where f = best . scoreMoves' (d-1)
         k [] = -1
         k xs = foldr1 min xs    -- take the worst case
