@@ -7,14 +7,14 @@
  - any later version.
  -}
 
-module Main where
+module Game2048.Main where
 
-import AI (auto)
-import Board (start)
 import Control.Applicative ((<$>))
 import Control.Monad.Trans.State (StateT, evalStateT)
 import Data.Time.Clock (getCurrentTime, utctDayTime)
-import Game (loop)
+import Game2048.AI (auto)
+import Game2048.Board (start)
+import Game2048.Game (loop)
 import System.Environment (getArgs)
 import System.Random (StdGen, mkStdGen)
 

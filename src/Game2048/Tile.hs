@@ -10,7 +10,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module Tile
+module Game2048.Tile
        ( Tile
        , distance
        , goal
@@ -26,8 +26,8 @@ module Tile
 
 import Data.Bits (shiftL)
 import Data.Word (Word8, Word16)
+import Game2048.Util (Zero(..))
 import System.Random (Random(..))
-import Util (Zero(..))
 
 newtype Tile = Tile {index :: Word8}
   deriving (Enum, Ord, Eq)

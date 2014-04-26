@@ -11,7 +11,7 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Board
+module Game2048.Board
        ( Board
        , Move(..)
        , edges
@@ -34,15 +34,15 @@ module Board
 import           Control.DeepSeq (NFData(..))
 import           Control.Monad (liftM)
 import           Control.Monad.State (MonadState, state)
-import           Coord
 import           Data.Foldable (Foldable)
 import           Data.IntMap.Lazy (IntMap)
 import qualified Data.IntMap.Lazy as Map
 import           Data.Maybe (fromJust)
+import           Game2048.Coord
+import           Game2048.Tile
+import           Game2048.Util
 import           Prelude hiding (Left, Right, foldr)
 import           System.Random (RandomGen, random)
-import           Tile
-import           Util
 
 newtype Board' a = Board {unBoard :: IntMap a}
                  deriving (Eq, Show, Foldable)

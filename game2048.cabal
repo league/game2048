@@ -15,18 +15,46 @@ build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.10
 
-executable game2048
-  default-language:    Haskell2010
-  ghc-options:         -Wall -threaded
-  hs-source-dirs:      src
-  main-is:             Main.hs
+library
+  default-language: Haskell2010
+  hs-source-dirs: src
+  ghc-options: -Wall -threaded
+  exposed-modules:
+    Game2048.AI
+    Game2048.Board
+    Game2048.Coord
+    Game2048.Game
+    Game2048.Main
+    Game2048.Tile
+    Game2048.Util
   build-depends:
       base >=4.6 && < 4.7
     , containers >= 0.5 && < 0.6
     , deepseq >= 1.3 && < 1.4
-    , lifted-base >= 0.2 && < 0.3
     , mtl >= 2.1 && < 2.2
     , parallel >= 3.2 && < 3.3
     , random >= 1.0 && < 1.1
     , time >= 1.4 && < 1.5
     , transformers >= 0.3 && < 0.4
+
+executable game2048
+  default-language:    Haskell2010
+  ghc-options:         -Wall -threaded
+  hs-source-dirs:      .
+  main-is:             Main.hs
+  build-depends:
+      base >= 4.6 && < 4.7
+    , game2048 >= 0.1 && < 0.2
+
+test-suite tests
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  hs-source-dirs: test
+  ghc-options: -Wall -threaded
+  build-depends:
+      base >= 4.6 && < 4.7
+    , game2048 >= 0.1 && < 0.2
+    , test-framework-hunit >= 0.3 && < 0.4
+    , test-framework-quickcheck >= 0.3 && < 0.4
+    , test-framework-th >= 0.2 && < 0.3

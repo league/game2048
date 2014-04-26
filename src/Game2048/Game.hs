@@ -8,10 +8,8 @@
  -}
 {-# LANGUAGE ViewPatterns #-}
 
-module Game where
+module Game2048.Game where
 
-import AI (scoreMoves, best, calc)
-import Board
 import Control.Monad (liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State (MonadState)
@@ -19,9 +17,11 @@ import Data.Char (toUpper, isSpace)
 import Data.List (find, intercalate)
 import Data.Maybe (fromJust)
 import Data.Maybe (mapMaybe)
+import Game2048.AI (scoreMoves, best, calc)
+import Game2048.Board
+import Game2048.Util (every)
 import System.IO (hFlush, stdout)
 import System.Random (RandomGen)
-import Util (every)
 
 data Response = Move Move | Quit | Error deriving Show
 

@@ -7,7 +7,7 @@
  - any later version.
  -}
 
-module Coord
+module Game2048.Coord
        ( Coord
        , coord
        , gridSize

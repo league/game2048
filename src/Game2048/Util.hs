@@ -7,7 +7,7 @@
  - any later version.
  -}
 
-module Util where
+module Game2048.Util where
 
 import Control.Monad (liftM)
 import Control.Monad.IO.Class (MonadIO, liftIO)

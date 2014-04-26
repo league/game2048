@@ -8,10 +8,8 @@
  -}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module AI where
+module Game2048.AI where
 
-import Board
-import Coord
 import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State (MonadState)
@@ -20,10 +18,12 @@ import Data.Foldable (foldr, foldr1)
 import Data.IORef
 import Data.Maybe (mapMaybe, isNothing)
 import Data.Time.Clock
+import Game2048.Board
+import Game2048.Coord
+import Game2048.Tile
+import Game2048.Util
 import Prelude hiding (foldr, foldr1)
 import System.Random (RandomGen)
-import Tile
-import Util
 
 {- Reward making rows (respectively, columns) monotonic. The ideal situation
 is having all rows monotonic in the SAME direction, but mixed monotonicity is
