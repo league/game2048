@@ -29,10 +29,6 @@ instance Board' BoardT' where
     where i = row c
           j = col c
 
-  show2D b = unlines (map eachRow rows)
-    where eachRow = concat . map eachCol
-          eachCol = padLeft 6 . show . tileAt b
-
   freeCells = concat . zipWith f [0..] . unBoard
     where f i = map (coord i) . findIndices isEmpty
 

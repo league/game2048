@@ -32,21 +32,8 @@ instance Board' BoardT' where
             if isEmpty t then cts
             else (fromEnum(coord i j), t) : cts
 
-  move b m = Board $ Map.fromList $ filter p $ concat $ map (squeeze k) $ cts
-    where
-      cts = map (map f) cc
-      f c = (fromEnum c, tileAt b c)
-      p = not . isEmpty . snd
-      (k, cc) = case m of
-            Left  -> (rowSize, rows)
-            Right -> (rowSize, rowsRev)
-            Up    -> (colSize, cols)
-            Down  -> (colSize, colsRev)
+  move b = Board . Map.fromList . moveViaCoordLists b
 
   placeTile t c = Board . Map.insert (fromEnum c) t . unBoard
-
-  show2D b = unlines (map eachRow rows)
-    where eachRow = concat . map eachCol
-          eachCol = padLeft 6 . show . tileAt b
 
   tileAt b c = Map.findWithDefault zero (fromEnum c) (unBoard b)

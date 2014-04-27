@@ -6,6 +6,7 @@ module Game2048.Board.Base
        , Board
        , Board'(..)
        , edges
+       , moveViaCoordLists
        , movesByChar
        , placeRandom
        , rows, cols
@@ -23,6 +24,7 @@ import Data.Maybe (fromJust)
 import Game2048.Coord
 import Game2048.Tile
 import Game2048.Util
+import Prelude hiding (Left, Right)
 import System.Random (RandomGen, Random, random)
 
 data Move = Left | Right | Up | Down
@@ -35,7 +37,7 @@ movesByChar = map f every
   where f :: Move -> (Char, Move)
         f m = (head (show m), m)
 
-class Foldable b => Board' b where
+class Board' b where
   freeCells :: b Tile -> [Coord]
   fromList  :: [[Tile]] -> b Tile
   move      :: b Tile -> Move -> b Tile
@@ -46,11 +48,15 @@ class Foldable b => Board' b where
   freeCount :: b Tile -> Int
   freeCount = length . freeCells
 
+  show2D b = unlines (map eachRow rows)
+    where eachRow = concat . map eachCol
+          eachCol = padLeft 6 . show . tileAt b
+
   maybeMove :: Board b Tile => b Tile -> Move -> Maybe (Move, b Tile)
   maybeMove b m = if b' == b then Nothing else Just (m, b')
     where b' = move b m
 
-type Board b t = (Board' b, Eq (b t), Zero (b t))
+type Board b t = (Board' b, Foldable b, Eq (b t), Zero (b t))
 
 squeeze' :: Int -> [Tile] -> [Tile]
 squeeze' k = loop k . filter (not . isEmpty)
@@ -60,6 +66,18 @@ squeeze' k = loop k . filter (not . isEmpty)
 
 squeeze :: Int -> [(a,Tile)] -> [(a,Tile)]
 squeeze k cts = zip (map fst cts) $ squeeze' k $ map snd cts
+
+moveViaCoordLists :: Board b Tile => b Tile -> Move -> [(Int,Tile)]
+moveViaCoordLists b m = filter p $ concat $ map (squeeze k) cts
+    where
+      cts = map (map f) cc
+      f c = (fromEnum c, tileAt b c)
+      p = not . isEmpty . snd
+      (k, cc) = case m of
+            Left  -> (rowSize, rows)
+            Right -> (rowSize, rowsRev)
+            Up    -> (colSize, cols)
+            Down  -> (colSize, colsRev)
 
 rowRange, colRange :: [Int]
 rowRange = [0 .. row maxBound]

@@ -6,6 +6,7 @@ import Game2048.AI (scoreMoves)
 import Game2048.Board.Base
 import Game2048.Board.IntMapBoard as IMB
 import Game2048.Board.ListBoard as LB
+import Game2048.Board.VectorBoard as VB
 import Game2048.Tile
 
 type FLT b = [[Tile]] -> b Tile
@@ -22,5 +23,6 @@ run label fromL = do
 
 main :: IO ()
 main = do
-  run "ListBoard" (fromList :: FLT LB.BoardT')
+  run "VectorBoard" (fromList :: FLT VB.BoardT')
+  run "ListBoard"   (fromList :: FLT LB.BoardT')
   run "IntMapBoard" (fromList :: FLT IMB.BoardT')

@@ -25,6 +25,7 @@ library
     Game2048.Board.Base
     Game2048.Board.IntMapBoard
     Game2048.Board.ListBoard
+    Game2048.Board.VectorBoard
     Game2048.Coord
     Game2048.Game
     Game2048.Main
@@ -39,6 +40,7 @@ library
     , random >= 1.0 && < 1.1
     , time >= 1.4 && < 1.5
     , transformers >= 0.3 && < 0.4
+    , vector >= 0.10 && < 0.11
 
 executable game2048
   default-language:    Haskell2010
