@@ -1,4 +1,4 @@
-{- Util • various helper functions
+{- Game2048.Util • various helper functions
  - Copyright ©2014 Christopher League <league@contrapunctus.net>
  -
  - This program is free software: you can redistribute it and/or modify it

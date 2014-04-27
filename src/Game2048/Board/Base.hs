@@ -1,5 +1,14 @@
-{-# LANGUAGE FlexibleInstances #-}
+{- Game2048.Board.Base • framework for representing the grid of tiles
+ - Copyright ©2014 Christopher League <league@contrapunctus.net>
+ -
+ - This program is free software: you can redistribute it and/or modify it
+ - under the terms of the GNU General Public License as published by the Free
+ - Software Foundation, either version 3 of the License, or (at your option)
+ - any later version.
+ -}
+
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Game2048.Board.Base
        ( Move(..)

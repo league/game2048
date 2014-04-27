@@ -1,3 +1,12 @@
+{- Game2048.Board.IntMapBoard • represent grid as IntMap (patricia tree)
+ - Copyright ©2014 Christopher League <league@contrapunctus.net>
+ -
+ - This program is free software: you can redistribute it and/or modify it
+ - under the terms of the GNU General Public License as published by the Free
+ - Software Foundation, either version 3 of the License, or (at your option)
+ - any later version.
+ -}
+
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}

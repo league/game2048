@@ -1,4 +1,4 @@
-{- Game • interacting with user to play the game
+{- Game2048.Game • interacting with user to play the game
  - Copyright ©2014 Christopher League <league@contrapunctus.net>
  -
  - This program is free software: you can redistribute it and/or modify it

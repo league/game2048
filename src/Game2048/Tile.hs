@@ -1,4 +1,4 @@
-{- Tile • representing individual tiles on the board
+{- Game2048.Tile • representing individual tiles on the board
  - Copyright ©2014 Christopher League <league@contrapunctus.net>
  -
  - This program is free software: you can redistribute it and/or modify it
@@ -6,6 +6,7 @@
  - Software Foundation, either version 3 of the License, or (at your option)
  - any later version.
  -}
+
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}

@@ -1,4 +1,4 @@
-{- Main • main program launcher
+{- Game2048.Main • main program launcher
  - Copyright ©2014 Christopher League <league@contrapunctus.net>
  -
  - This program is free software: you can redistribute it and/or modify it

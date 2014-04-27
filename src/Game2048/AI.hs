@@ -1,4 +1,4 @@
-{- AI • deciding which move is best
+{- Game2048.AI • deciding which move is best
  - Copyright ©2014 Christopher League <league@contrapunctus.net>
  -
  - This program is free software: you can redistribute it and/or modify it
@@ -6,8 +6,9 @@
  - Software Foundation, either version 3 of the License, or (at your option)
  - any later version.
  -}
-{-# LANGUAGE ScopedTypeVariables #-}
+
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Game2048.AI where
 
