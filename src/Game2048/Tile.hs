@@ -25,13 +25,16 @@ module Game2048.Tile
        , zero
        ) where
 
-import Data.Bits (shiftL)
-import Data.Word (Word8, Word16)
-import Game2048.Util (Zero(..))
-import System.Random (Random(..))
+import           Data.Bits (shiftL)
+import           Data.Vector.Generic.Base
+import           Data.Vector.Generic.Mutable
+import qualified Data.Vector.Unboxed as U
+import           Data.Word (Word8, Word16)
+import           Game2048.Util (Zero(..))
+import           System.Random (Random(..))
 
 newtype Tile = Tile {index :: Word8}
-  deriving (Enum, Ord, Eq)
+  deriving (Enum, Ord, Eq, Vector U.Vector, MVector U.MVector, U.Unbox)
 
 instance Zero Tile where
   zero = Tile 0

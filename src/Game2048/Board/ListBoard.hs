@@ -20,7 +20,7 @@ import Game2048.Board.Base
 import Game2048.Coord
 import Game2048.Tile
 import Game2048.Util
-import Prelude hiding (Left, Right)
+import Prelude as P hiding (Left, Right)
 
 newtype BoardT' a = Board {unBoard :: [[a]]}
                     deriving (Eq, Show, Foldable)
@@ -54,3 +54,5 @@ instance Board' BoardT' where
         where loop n [] = replicate n zero
               loop n (t1:t2:ts') | t1 == t2 = succ t1 : loop (n-1) ts'
               loop n (t:ts) = t : loop (n-1) ts
+
+  foldr f z b = P.foldr (\r c -> P.foldr f c r) z (unBoard b)

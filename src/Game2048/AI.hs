@@ -8,6 +8,7 @@
  -}
 
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Game2048.AI where
@@ -16,15 +17,14 @@ import Control.Monad (when)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.State (MonadState)
 import Control.Parallel.Strategies
-import Data.Foldable (foldr, foldr1)
 import Data.IORef
 import Data.Maybe (mapMaybe, isNothing)
 import Data.Time.Clock
-import Game2048.Board.Base
+import Game2048.Board.Base as B
 import Game2048.Coord
 import Game2048.Tile
 import Game2048.Util
-import Prelude hiding (foldr, foldr1)
+import Prelude as P
 import System.Random (RandomGen)
 
 {- Reward making rows (respectively, columns) monotonic. The ideal situation
@@ -60,14 +60,14 @@ bigEnough :: Tile -> Bool
 bigEnough t = index t > 3  -- don't bother with 2,4,8
 
 largest :: Board b Tile => Int -> b Tile -> [Tile]
-largest n = take n . rsort . filter bigEnough . foldr (:) []
+largest n = take n . rsort . filter bigEnough . B.foldr (:) []
 
 howManyPerEdge :: Board b Tile => b Tile -> [Tile] -> [Coord] -> Int
 howManyPerEdge b ts = length . filter p
   where p c = tileAt b c `elem` ts
 
 edgeFactor :: Board b Tile => b Tile -> Float
-edgeFactor b = fromIntegral(foldr1 max es) / fromIntegral n
+edgeFactor b = fromIntegral(P.foldr1 max es) / fromIntegral n
   where n = 3
         es = map (howManyPerEdge b (largest n b)) edges
 
@@ -103,7 +103,7 @@ deepScore 0 = boardScore
 deepScore d = k . map snd . mapMaybe f . {-everyOther .-} allPlaces
   where f = best . scoreMoves' (d-1)
         k [] = -1
-        k xs = foldr1 min xs    -- take the worst case
+        k xs = P.foldr1 min xs    -- take the worst case
 
 scoreMoves', scoreMoves :: Board b Tile => Int -> b Tile -> [(Move, Float)]
 scoreMoves' d b = map f $ mapMaybe (maybeMove b) every
@@ -113,7 +113,7 @@ scoreMoves d b = scoreMoves' d b `using` parList rdeepseq
 
 best :: [(Move, Float)] -> Maybe (Move, Float)
 best [] = Nothing
-best xs = Just $ foldr1 (mapIf snd (>)) xs
+best xs = Just $ P.foldr1 (mapIf snd (>)) xs
 
 type Status = Maybe (Int, NominalDiffTime)
 
@@ -128,7 +128,7 @@ auto' begin status count depth board = loop board
         liftIO $ putStrLn $ show2D b ++ show i ++ ": " ++ show mk
         let b' = move b (fst mk)
         st <- liftIO $ readIORef status
-        when (isNothing st && foldr1 max b == goal) $ liftIO $ do
+        when (isNothing st && B.foldr1 max b == goal) $ liftIO $ do
           end <- getCurrentTime
           putStrLn "========================= CONGRATS!"
           writeIORef status (Just (i, diffUTCTime end begin))

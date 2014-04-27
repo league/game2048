@@ -8,12 +8,12 @@
  -}
 
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Game2048.Board.VectorBoard(BoardT, BoardT') where
 
-import Data.Foldable (Foldable(..))
-import Data.Vector as V hiding (concat)
+import Data.Vector.Unboxed as V hiding (concat)
 import Game2048.Board.Base
 import Game2048.Coord
 import Game2048.Tile
@@ -25,10 +25,6 @@ type BoardT = BoardT' Tile
 
 instance Zero BoardT where
   zero = Board $ V.replicate gridSize zero
-
-instance Foldable BoardT' where
-  foldr f z b = V.foldr f z (unBoard b)
-  foldr1 f b = V.foldr1 f (unBoard b)
 
 instance Board' BoardT' where
 
@@ -44,3 +40,6 @@ instance Board' BoardT' where
             else xs
 
   move b m = Board $ unBoard zero // moveViaCoordLists b m
+
+  foldr f z = V.foldr f z . unBoard
+  foldr1 f = V.foldr1 f . unBoard

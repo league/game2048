@@ -9,6 +9,7 @@
 
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Game2048.Board.Base
        ( Move(..)
@@ -28,12 +29,11 @@ module Game2048.Board.Base
 import Control.DeepSeq (NFData(..))
 import Control.Monad (liftM)
 import Control.Monad.State (MonadState, state)
-import Data.Foldable (Foldable(..))
 import Data.Maybe (fromJust)
 import Game2048.Coord
 import Game2048.Tile
 import Game2048.Util
-import Prelude hiding (Left, Right)
+import Prelude hiding (Left, Right, foldr)
 import System.Random (RandomGen, Random, random)
 
 data Move = Left | Right | Up | Down
@@ -47,12 +47,19 @@ movesByChar = map f every
         f m = (head (show m), m)
 
 class Board' b where
+
+  foldr     :: (Tile -> a -> a) -> a -> b Tile -> a
   freeCells :: b Tile -> [Coord]
   fromList  :: [[Tile]] -> b Tile
   move      :: b Tile -> Move -> b Tile
   placeTile :: Tile -> Coord -> b Tile -> b Tile
   show2D    :: b Tile -> String
   tileAt    :: b Tile -> Coord -> Tile
+
+  foldr1 :: (Tile -> Tile -> Tile) -> b Tile -> Tile
+  foldr1 f b = fromJust $ foldr g Nothing b
+    where g t0 Nothing = Just t0
+          g t1 (Just t2) = Just $ f t1 t2
 
   freeCount :: b Tile -> Int
   freeCount = length . freeCells
@@ -65,7 +72,7 @@ class Board' b where
   maybeMove b m = if b' == b then Nothing else Just (m, b')
     where b' = move b m
 
-type Board b t = (Board' b, Foldable b, Eq (b t), Zero (b t))
+type Board b t = (Board' b, Eq (b t), Zero (b t))
 
 squeeze' :: Int -> [Tile] -> [Tile]
 squeeze' k = loop k . filter (not . isEmpty)
