@@ -7,6 +7,7 @@
  - any later version.
  -}
 
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Game2048.Main where
@@ -14,10 +15,12 @@ module Game2048.Main where
 import Control.Applicative ((<$>))
 import Control.Monad.Trans.State (StateT, evalStateT)
 import Data.Time.Clock (getCurrentTime, utctDayTime)
-import Game2048.AI (auto)
-import Game2048.Board.Base (start)
+import Game2048.AI (auto, DepthFn)
+import Game2048.Board.Base (Board, start, freeCount)
 import Game2048.Board.VectorBoard (BoardT)
+import Game2048.Coord (gridSize)
 import Game2048.Game (loop)
+import Game2048.Tile (Tile)
 import System.Environment (getArgs)
 import System.Random (StdGen, mkStdGen)
 
@@ -27,9 +30,14 @@ seedRand = mkStdGen . fromEnum . utctDayTime <$> getCurrentTime
 runRand :: StateT StdGen IO a -> IO a
 runRand a = seedRand >>= evalStateT a
 
-plausibleDepth :: Int
+fastDepth, plausibleDepth :: Int
+fastDepth = 2
 plausibleDepth = 3
 
+depth :: Board b Tile => DepthFn b
+depth b = if freeCount b > gridSize `div` 2 then fastDepth
+          else plausibleDepth
+--depth _ = fastDepth
 
 main :: IO ()
 main = do
@@ -37,5 +45,5 @@ main = do
   runRand $ do
     b :: BoardT <- start
     prog args b
-  where prog ("auto":_) = auto plausibleDepth
-        prog _ = loop plausibleDepth
+  where prog ("auto":_) = auto depth
+        prog _ = loop fastDepth

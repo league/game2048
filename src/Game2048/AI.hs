@@ -20,6 +20,7 @@ import Control.Parallel.Strategies
 import Data.IORef
 import Data.Maybe (mapMaybe, isNothing)
 import Data.Time.Clock
+import Data.Word (Word8)
 import Game2048.Board.Base as B
 import Game2048.Coord
 import Game2048.Tile
@@ -54,13 +55,31 @@ sameFactor ro co = fromIntegral (rs + cs) / k
 elbowRoomFactor :: Board b Tile => b Tile -> Float
 elbowRoomFactor b = fromIntegral (freeCount b) / fromIntegral gridSize
 
+{- Reward making equal tiles neighbors. Let's do the percentage of big tiles
+that have an equal neighbor. Need to be careful weighting this; don't want it
+to outweight joining to make bigger tiles.-}
+
+neighborFactor :: Board b Tile => b Tile -> Float
+neighborFactor b =
+  case P.foldr countLikeNeighbors (0,0) $ map (map (tileAt b)) straits of
+    (_, 0) -> 0
+    (k, n) -> fromIntegral k / fromIntegral n
+
+countLikeNeighbors :: [Tile] -> (Int,Int) -> (Int,Int)
+countLikeNeighbors [] kn = kn
+countLikeNeighbors (t1:t2:ts) (k,n)
+  | bigEnough 3 t1 && t1 == t2 = countLikeNeighbors ts (k+2, n+2)
+countLikeNeighbors (t:ts) (k,n)
+  | bigEnough 3 t = countLikeNeighbors ts (k, n+1)
+  | otherwise = countLikeNeighbors ts (k,n)
+
 {- Keep largest tiles on the same edge -}
 
-bigEnough :: Tile -> Bool
-bigEnough t = index t > 3  -- don't bother with 2,4,8
+bigEnough :: Word8 -> Tile -> Bool
+bigEnough i t = index t > i
 
 largest :: Board b Tile => Int -> b Tile -> [Tile]
-largest n = take n . rsort . filter bigEnough . B.foldr (:) []
+largest n = take n . rsort . filter (bigEnough 4) . B.foldr (:) []
 
 howManyPerEdge :: Board b Tile => b Tile -> [Tile] -> [Coord] -> Int
 howManyPerEdge b ts = length . filter p
@@ -73,15 +92,17 @@ edgeFactor b = fromIntegral(P.foldr1 max es) / fromIntegral n
 
 {- Combining above factors -}
 
-data Factors = Factors { monoF, sameF, elbowF, edgeF :: Float }
-             deriving Show
+data Factors =
+  Factors { monoF, sameF, elbowF, edgeF, neighborF :: Float }
+  deriving Show
 
 calc :: Board b Tile => b Tile -> Factors
-calc b = Factors mf sf rf ef
+calc b = Factors mf sf rf ef nf
   where mf = monoFactor so
         sf = sameFactor ro co
         rf = elbowRoomFactor b
         ef = edgeFactor b
+        nf = neighborFactor b
         so = ro ++ co
         ro = mono rows b
         co = mono cols b
@@ -90,7 +111,8 @@ boardScore :: Board b Tile => b Tile -> Float
 boardScore b = 2 * monoF f +
                3 * sameF f +
                3 * elbowF f +
-               2 * edgeF f
+               2 * edgeF f +
+               neighborF f
   where f = calc b
 
 allPlaces :: Board b Tile => b Tile -> [b Tile]
@@ -116,16 +138,18 @@ best [] = Nothing
 best xs = Just $ P.foldr1 (mapIf snd (>)) xs
 
 type Status = Maybe (Int, NominalDiffTime)
+type DepthFn b = b Tile -> Int
 
 auto' :: (RandomGen g, MonadState g m, MonadIO m, Board b Tile) =>
-         UTCTime -> IORef Status -> IORef Int -> Int -> b Tile -> m ()
+         UTCTime -> IORef Status -> IORef Int -> DepthFn b -> b Tile -> m ()
 auto' begin status count depth board = loop board
   where
-    loop b = case best (scoreMoves depth b) of
+    loop b = case best (scoreMoves (depth b) b) of
       Nothing -> liftIO $ putStrLn "GAME OVER"
       Just mk -> do
         i <- modifyReturnIORef count (+1)
-        liftIO $ putStrLn $ show2D b ++ show i ++ ": " ++ show mk
+        liftIO $ putStrLn $ show2D b ++ show (calc b) ++ "\n" ++
+          show i ++ ": " ++ show mk
         let b' = move b (fst mk)
         st <- liftIO $ readIORef status
         when (isNothing st && B.foldr1 max b == goal) $ liftIO $ do
@@ -135,7 +159,8 @@ auto' begin status count depth board = loop board
         mb <- placeRandom b'
         maybe (liftIO $ putStrLn "GAME OVER!") loop mb
 
-auto :: (RandomGen g, MonadState g m, MonadIO m, Board b Tile) => Int -> b Tile -> m ()
+auto :: (RandomGen g, MonadState g m, MonadIO m, Board b Tile)
+        => DepthFn b -> b Tile -> m ()
 auto depth board = do
   begin  <- liftIO getCurrentTime
   status <- liftIO $ newIORef Nothing
