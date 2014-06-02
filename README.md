@@ -1,6 +1,8 @@
 game2048
 ========
 
+[![Build Status](https://travis-ci.org/league/game2048.svg?branch=master)](https://travis-ci.org/league/game2048)
+
 Attempt at AI for the 2048 puzzle. (I'm mainly using this as a vehicle for
 learning more Haskell.) Currently it gets to 2048 some of the time, but not
 consistently. The heuristic surely needs to be tuned. It's fast to search to
