@@ -17,7 +17,7 @@ $ dist/build/game2048/game2048 auto +RTS -N
 ````
 
 If you'd like to control the game play (but still get statistics from the AI),
-leave out the `auth` argument:
+leave out the `auto` argument:
 
 ````
 $ dist/build/game2048/game2048 +RTS -N
